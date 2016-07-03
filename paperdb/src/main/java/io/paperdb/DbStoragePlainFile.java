@@ -5,9 +5,12 @@ import android.util.Log;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
+import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer;
+
+import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,10 +19,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
+import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import io.paperdb.serializer.NoArgCollectionSerializer;
 
@@ -29,6 +36,7 @@ public class DbStoragePlainFile implements Storage {
 
     private final Context mContext;
     private final String mDbName;
+    private final HashMap<Class, Serializer> mCustomSerializers;
     private String mFilesDir;
     private boolean mPaperDirIsCreated;
 
@@ -63,12 +71,23 @@ public class DbStoragePlainFile implements Storage {
                 new NoArgCollectionSerializer());
         // To keep backward compatibility don't change the order of serializers above
 
+        // UUID support
+        kryo.register(UUID.class, new UUIDSerializer());
+        
+        for (Class<?> clazz : mCustomSerializers.keySet())
+            kryo.register(clazz, mCustomSerializers.get(clazz));
+
+        kryo.setInstantiatorStrategy(
+                new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+
         return kryo;
     }
 
-    public DbStoragePlainFile(Context context, String dbName) {
+    public DbStoragePlainFile(Context context, String dbName,
+                              HashMap<Class, Serializer> serializers) {
         mContext = context;
         mDbName = dbName;
+        mCustomSerializers = serializers;
     }
 
     @Override
@@ -134,6 +153,23 @@ public class DbStoragePlainFile implements Storage {
 
         final File originalFile = getOriginalFile(key);
         return originalFile.exists();
+    }
+
+    @Override
+    public List<String> getAllKeys() {
+        assertInit();
+
+        File bookFolder = new File(mFilesDir);
+        String[] names = bookFolder.list();
+        if (names != null) {
+            //remove extensions
+            for (int i = 0; i < names.length; i++) {
+                names[i] = names[i].replace(".pt", "");
+            }
+            return Arrays.asList(names);
+        } else {
+            return new ArrayList<>();
+        }
     }
 
     @Override

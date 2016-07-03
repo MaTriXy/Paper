@@ -1,13 +1,17 @@
 package io.paperdb;
 
 import android.content.Context;
+import com.esotericsoftware.kryo.Serializer;
+
+import java.util.HashMap;
+import java.util.List;
 
 public class Book {
 
     private final Storage mStorage;
 
-    protected Book(Context context, String dbName) {
-        mStorage = new DbStoragePlainFile(context.getApplicationContext(), dbName);
+    protected Book(Context context, String dbName, HashMap<Class, Serializer> serializers) {
+        mStorage = new DbStoragePlainFile(context.getApplicationContext(), dbName, serializers);
     }
 
     /**
@@ -81,6 +85,15 @@ public class Book {
      */
     public void delete(String key) {
         mStorage.deleteIfExists(key);
+    }
+
+    /**
+     * Returns all keys for objects in book.
+     *
+     * @return all keys
+     */
+    public List<String> getAllKeys() {
+        return mStorage.getAllKeys();
     }
 
 }

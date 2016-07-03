@@ -2,15 +2,19 @@ package io.paperdb;
 
 import android.support.test.runner.AndroidJUnit4;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
 
+import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
 import io.paperdb.testdata.TestDataGenerator;
 
 import static android.support.test.InstrumentationRegistry.getTargetContext;
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -151,5 +155,29 @@ public class PaperTest {
 
         assertThat(Paper.book().read("city")).isEqualTo("Lund");
         assertThat(Paper.book(NATIVE).read("city")).isNull();
+    }
+
+    @Test
+    public void testGetAllKeys() {
+        Paper.book().destroy();
+
+        Paper.book().write("city", "Lund");
+        Paper.book().write("city1", "Lund1");
+        Paper.book().write("city2", "Lund2");
+        List<String> allKeys = Paper.book().getAllKeys();
+
+        assertThat(allKeys.size()).isEqualTo(3);
+        assertThat(allKeys.contains("city")).isTrue();
+        assertThat(allKeys.contains("city1")).isTrue();
+        assertThat(allKeys.contains("city2")).isTrue();
+    }
+
+    @Test
+    public void testCustomSerializer() {
+        Paper.addSerializer(DateTime.class, new JodaDateTimeSerializer());
+
+        DateTime now = DateTime.now(DateTimeZone.UTC);
+        Paper.book("custom").write("joda-datetime", now);
+        assertEquals(Paper.book("custom").read("joda-datetime"), now);
     }
 }
