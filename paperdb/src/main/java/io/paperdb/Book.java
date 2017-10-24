@@ -1,17 +1,23 @@
 package io.paperdb;
 
 import android.content.Context;
+
 import com.esotericsoftware.kryo.Serializer;
 
 import java.util.HashMap;
 import java.util.List;
 
+@SuppressWarnings({"WeakerAccess", "SameParameterValue"})
 public class Book {
 
-    private final Storage mStorage;
+    private final DbStoragePlainFile mStorage;
 
     protected Book(Context context, String dbName, HashMap<Class, Serializer> serializers) {
         mStorage = new DbStoragePlainFile(context.getApplicationContext(), dbName, serializers);
+    }
+
+    protected Book(String dbPath, String dbName, HashMap<Class, Serializer> serializers) {
+        mStorage = new DbStoragePlainFile(dbPath, dbName, serializers);
     }
 
     /**
@@ -69,13 +75,36 @@ public class Book {
     }
 
     /**
-     * Check if an object with the given key is saved in Book storage.
+     * Checks if an object with the given key is saved in Book storage.
+     *
+     * @param key object key
+     * @return true if Book storage contains an object with given key, false otherwise
+     */
+    public boolean contains(String key) {
+        return mStorage.exists(key);
+    }
+
+    /**
+     * Checks if an object with the given key is saved in Book storage.
      *
      * @param key object key
      * @return true if object with given key exists in Book storage, false otherwise
+     * @deprecated As of release 2.6, replaced by {@link #contains(String)}}
      */
     public boolean exist(String key) {
-        return mStorage.exist(key);
+        return mStorage.exists(key);
+    }
+
+    /**
+     * Returns lastModified timestamp of last write in ms.
+     * NOTE: only granularity in seconds is guaranteed. Some file systems keep
+     * file modification time only in seconds.
+     *
+     * @param key object key
+     * @return timestamp of last write for given key in ms if it exists, otherwise -1
+     */
+    public long lastModified(String key) {
+        return mStorage.lastModified(key);
     }
 
     /**
@@ -96,4 +125,41 @@ public class Book {
         return mStorage.getAllKeys();
     }
 
+    /**
+     * Sets log level for internal Kryo serializer
+     *
+     * @param level one of levels from {@link com.esotericsoftware.minlog.Log }
+     */
+    public void setLogLevel(int level) {
+        mStorage.setLogLevel(level);
+    }
+
+    /**
+     * Returns path to a folder containing *.pt files for all keys kept
+     * in the current Book. Could be handy for Book export/import purposes.
+     * The returned path does not exist if the method has been called prior
+     * saving any data in the current Book.
+     * <p>
+     * See also {@link #getPath(String)}.
+     *
+     * @return path to a folder locating data files for the current Book
+     */
+    public String getPath() {
+        return mStorage.getRootFolderPath();
+    }
+
+    /**
+     * Returns path to a *.pt file containing saved object for a given key.
+     * Could be handy for object export/import purposes.
+     * The returned path does not exist if the method has been called prior
+     * saving data for the given key.
+     * <p>
+     * See also {@link #getPath()}.
+     *
+     * @param key object key
+     * @return path to a *.pt file containing saved object for a given key.
+     */
+    public String getPath(String key) {
+        return mStorage.getOriginalFilePath(key);
+    }
 }
