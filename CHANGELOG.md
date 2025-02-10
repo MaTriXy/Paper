@@ -1,6 +1,27 @@
 Change Log
 ==========
 
+Version 2.7.2 *(2020-12-23)*
+----------------------------
+
+Fixes:
+* Crash on read caused by R8 optimization
+
+Improvements:
+* Add nullability annotations
+
+Thanks Keita Watanabe, Nabil Mosharraf, Ahmet Türk
+
+Version 2.7.1 *(2020-05-11)*
+----------------------------
+
+Fixes:
+* Ignore backup files in getAllKeys
+* Fix exception on simultaneous write and destroy
+
+Thanks Alexandre Boucey, Mohamed Wael and other contributors to make this happen!
+
+
 Version 2.6 *(2017-10-21)*
 ----------------------------
 

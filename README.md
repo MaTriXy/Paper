@@ -1,29 +1,23 @@
 # Paper
 [![Android Arsenal](https://img.shields.io/badge/Android%20Arsenal-Paper-blue.svg?style=flat)](http://android-arsenal.com/details/1/2080)   [![Build Status](https://travis-ci.org/pilgr/Paper.svg?branch=master)](https://travis-ci.org/pilgr/Paper)
 
-Paper is a [fast](#benchmark-results) NoSQL-like storage for Java/Kotlin objects on Android with automatic schema migration support.
+Paper's aim is to provide a simple yet [fast](#benchmark-results) object storage option for Android. It allows to use Java/Kotlin classes as is: without annotations, factory methods, mandatory class extensions etc. Moreover adding or removing fields to data classes is no longer a pain – all data structure changes are handled automatically.
 
 ![Paper icon](/paper_icon.png)
 
-### What's [new](/CHANGELOG.md) in 2.6
-
-New API:
-* `Paper.bookOn(path)` to set custom storage location;
-* `book.getPath()` or `book.getPath(key)` to get path for content of book or key.
-    
-Improvements:
-* simultaneous read/write for different keys, up to 97% performance gain per thread.
-* name change: use `book.contains(key)` instead of deprecated `book.exist(key)`
-    
-Thanks [@hiperioncn](https://github.com/hiperioncn) and [@cezar-carneiro](https://github.com/cezar-carneiro) for your contribution!
+### Migration to Maven Central
+**Library has been moved to Maven Central since service ends for JCenter. Note that group id
+has been changed to `io.github.pilgr`. See the updated section below.**  
 
 ### Add dependency
 ```groovy
-compile 'io.paperdb:paperdb:2.6'
+implementation 'io.github.pilgr:paperdb:2.7.2'
 ```
 
+RxJava wrapper for Paper is available as a separate lib [RxPaper2](https://github.com/pakoito/RxPaper2). Thanks [@pakoito](https://github.com/pakoito) for it!
+
 ### Initialize Paper
-Should be initialized one time in onCreate() in Application or Activity.
+Should be initialized once in `Application.onCreate()`:
 
 ```java
 Paper.init(context);
@@ -31,10 +25,10 @@ Paper.init(context);
 
 ### Threading
 * `Paper.init()` should be called in UI thread; 
-* All other APIs (`write`, `read` etc.) are thread-safe and obviously must be called outside of UI thread. Beginning of v2.6 reading/writing for different `key`s done simultaneously. 
+* All other APIs (`write`, `read` etc.) are thread-safe and obviously must be called outside of UI thread. Reading/writing for different `key`s can be done in parallel. 
  
 ### Save
-Save any object, Map, List, HashMap etc. including all internal objects. Use your existing data classes as is.
+Save any object, Map, List, HashMap etc. including all internal objects. Use your existing data classes as is. Note that key is used as file name to store the data and so *cannot* contain symbols like `/`.
 
 ```java
 List<Person> contacts = ...
@@ -85,7 +79,13 @@ List<String> allKeys = Paper.book().getAllKeys();
 ```
 
 ### Handle data structure changes
-Class fields which has been removed will be ignored on restore and new fields will have their default values. For example, if you have following data class saved in Paper storage:
+You can add or remove fields to the class. Then on next read attempt of a new class:
+* Newly added fields will have their default values. 
+* Removed field will be ignored. 
+
+*Note:* field type changes are not supported.
+
+For example, if you have following data class saved in Paper storage:
 
 ```java
 class Volcano {
@@ -135,7 +135,15 @@ also you can implement _Serializable_ for all your data classes and keep all of 
 ```
 -keep class * implements java.io.Serializable { *; }
 ```
+* If your data models use enums, you should also keep them:
 
+```
+-keep enum your.app.data.model.** { *; }
+```
+* And if you rely on Kotlin's `emptyList()`/`emptyMap()`/`emptySet` to assign values to your data models, it is relevant to keep `EmptyList`/`EmptyMap`/`EmptySet` as well:
+```
+-keep class kotlin.collections.* { *; }
+```
 ### How it works
 Paper is based on the following assumptions:
 - Datasets on mobile devices are small and usually don't have relations in between; 
@@ -148,11 +156,11 @@ The [Kryo](https://github.com/EsotericSoftware/kryo) is used for object graph se
 ### Benchmark results
 Running [Benchmark](https://github.com/pilgr/Paper/blob/master/paperdb/src/androidTest/java/io/paperdb/benchmark/Benchmark.java) on Nexus 4, in ms:
 
-| Benchmark                 | Paper    | [Hawk](https://github.com/orhanobut/hawk) | [sqlite](http://developer.android.com/reference/android/database/sqlite/package-summary.html) |
-|---------------------------|----------|----------|----------|
-| Read/write 500 contacts   | 187      | 447      |          |
-| Write 500 contacts        | 108      | 221      |          |
-| Read 500 contacts         | 79       | 155      |          |
+| Benchmark                 | Paper    | [Hawk](https://github.com/orhanobut/hawk) |
+|---------------------------|----------|----------|
+| Read/write 500 contacts   | 187      | 447      |
+| Write 500 contacts        | 108      | 221      |
+| Read 500 contacts         | 79       | 155      |
 
 ### Limitations
 * Circular references are not supported
